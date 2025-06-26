@@ -3,9 +3,30 @@ import time
 import os
 from datetime import datetime, timedelta
 import shutil
+import json
+
+day_dict = {"sunday": 6,
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5
+            }
+
+with open('..\\data_to_xml_json_file\\stuff.json', 'r') as file:
+    data = json.load(file)
+    day = data["day"]
+    target_weekday = day_dict[day]
+    un = data["un"]
+    pd = data["pw"]
+    paths = data["paths"]
+    url = data["url"]
+    login = data["login"]
+    wait_for = data["wait_for"]
+
 
 now = datetime.now()
-target_weekday = 6 #6 = sunday(0 or 7 would be monday, 1 would be tuesday, 2 would be wednesday, and so on)
 days_since_target = ((now.weekday() - target_weekday) % 7)+7 #now.weekday returns a number 0 through 6, 0 being monday and six being sunday 
                                                              #the +7 at the end makes this return the target day of last week so when doing it
                                                              #on monday, it wont return yesterday, instead it returns the sunday before yesterday
@@ -16,9 +37,7 @@ last_day = first_day + timedelta(days=6)
 first_day = first_day.replace(hour=0, minute=0, second=0, microsecond=0)  #set the time of the first day to 12:00 AM
 last_day = last_day.replace(hour=11, minute=59, second = 0, microsecond=0)  #set the time of the last day to 11:59 PM
 
-paths = []
-url = '' #overview page where we start the download process from
-login = '' #login page
+
 
 def main():
     with sync_playwright() as p:
@@ -27,11 +46,11 @@ def main():
         page = context.new_page()
 
         page.goto(login)
-        page.fill('input[name="identifier"]', '')  #where your un needs to go
+        page.fill('input[name="identifier"]', un)  #where your un needs to go
         page.click('button[type="submit"]')
-        page.fill('input[name="pd"]', '') # where your pd needs to go
+        page.fill('input[name="password"]', pd) # where your pd needs to go
         page.click('button[type="submit"]')
-        page.wait_for_url('') # home page
+        page.wait_for_url(wait_for) # home page
         context.storage_state(path="auth.json") # save login cookies to maintain login
 
         for path in paths:
@@ -72,6 +91,7 @@ def main():
     folder_to_zip = os.path.join(downloads_dir, foldername)
     output_zip_path = os.path.join(downloads_dir, foldername) 
     shutil.make_archive(output_zip_path, 'zip', folder_to_zip)
+    os.remove('auth.json')
     time.sleep(10)
 if __name__ == "__main__":
     main()
